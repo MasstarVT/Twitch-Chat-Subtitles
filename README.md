@@ -4,6 +4,7 @@ Live subtitles of your microphone for OBS. Speech recognition runs **fully offli
 in a small Rust program that uses about **3% of one CPU core**.
 
 - Words show up while you're still talking and are finalised when you pause.
+- Each word animates in (rise, fade, pop, blur, drop or type-on), and older lines glide up smoothly.
 - Punctuation and capital letters come from the default English model.
 - The overlay is an OBS **Browser Source**, so it works with any scene and needs no plugin.
 - The setup page has a live preview for font, size, colours, outline, background box, position, line count and auto-hide.
@@ -107,6 +108,7 @@ Colours are hex without `#` (`ffcc00`, or `000000a6` with transparency).
 | `margin` | `6` | Gap from the screen edge, % of height |
 | `fade` | `6` | Hide after this many seconds of silence (`0` = never) |
 | `case` | `none` | `sentence`, `upper` or `lower` |
+| `anim` | `rise` | Word animation: `rise`, `fade`, `pop`, `blur`, `drop`, `type` or `none` |
 | `demo` | off | `1` plays sample text, for positioning without talking |
 
 ## Why it's light

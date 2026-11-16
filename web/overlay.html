@@ -45,10 +45,12 @@
     border-radius: var(--radius);
     padding: .3em .7em;
     box-sizing: border-box;
-    transition: opacity .35s ease;
+    transition: opacity .35s ease, transform .35s cubic-bezier(.2, .8, .2, 1);
   }
   body.fixed #box { width: var(--width); }
-  #box.hidden { opacity: 0; }
+  #box.hidden { opacity: 0; transform: translateY(12px) scale(.98); }
+  body.top #box.hidden { transform: translateY(-12px) scale(.98); }
+  body[data-anim="none"] #box.hidden { transform: none; }
 
   /* Shows only the newest N lines: older text slides off the top. */
   #clip {
@@ -71,7 +73,25 @@
     paint-order: stroke fill;
     overflow-wrap: anywhere;
   }
-  #text .partial { color: var(--partial); }
+
+  /* One span per word, so each new word can animate on its own. */
+  .w { display: inline-block; transition: color .3s ease; }
+  .w.partial { color: var(--partial); }
+  .in { animation: w-fade .32s cubic-bezier(.2, .8, .2, 1) both; }
+  body[data-anim="rise"] .in { animation-name: w-rise; }
+  body[data-anim="pop"] .in { animation-name: w-pop; animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); }
+  body[data-anim="blur"] .in { animation-name: w-blur; animation-duration: .4s; }
+  body[data-anim="drop"] .in { animation-name: w-drop; animation-duration: .45s; }
+  body[data-anim="type"] .in { animation: w-fade 1ms step-end both; }
+  @keyframes w-fade { from { opacity: 0; } }
+  @keyframes w-rise { from { opacity: 0; transform: translateY(.45em); } }
+  @keyframes w-pop  { from { opacity: 0; transform: scale(.4); } }
+  @keyframes w-blur { from { opacity: 0; filter: blur(.25em); } }
+  @keyframes w-drop {
+    0%   { opacity: 0; transform: translateY(-.6em); }
+    60%  { opacity: 1; transform: translateY(.08em); }
+    100% { transform: none; }
+  }
 </style>
 </head>
 <body>
@@ -113,12 +133,17 @@ if (q.get("fixed") === "1") document.body.classList.add("fixed");
 
 const fadeAfter = parseFloat(q.get("fade") ?? "6");
 const caseMode = q.get("case") || "none";
+// Word animation: rise | fade | pop | blur | drop | type | none
+const anim = ["rise", "fade", "pop", "blur", "drop", "type", "none"].includes(q.get("anim")) ? q.get("anim") : "rise";
+document.body.dataset.anim = anim;
 
 const box = document.getElementById("box");
 const text = document.getElementById("text");
 let finals = [];
 let partial = "";
 let fadeTimer = 0;
+// Words currently on screen: { w: text, el: <span>, sp: space before it }
+let shown = [];
 
 function fmt(t) {
   switch (caseMode) {
@@ -132,26 +157,63 @@ function fmt(t) {
   }
 }
 
+function words() {
+  const out = [];
+  const add = (t, final) => { for (const w of fmt(t).split(/\s+/)) if (w) out.push({ w, final }); };
+  finals.forEach(f => add(f, true));
+  if (partial) add(partial, false);
+  return out;
+}
+
+function clearText() {
+  finals = []; partial = ""; shown = []; text.textContent = "";
+}
+
 function render() {
-  const done = finals.map(fmt).join(" ");
-  text.textContent = done;
-  if (partial) {
-    const span = document.createElement("span");
-    span.className = "partial";
-    span.textContent = (done ? " " : "") + fmt(partial);
-    text.append(span);
-  }
-  const empty = !done && !partial;
+  const next = words();
+  const animate = anim !== "none" && !box.classList.contains("hidden");
+  const topBefore = animate ? text.getBoundingClientRect().top : 0;
+
+  // Keep the words that are unchanged; the recognizer may rewrite the last few.
+  let keep = 0;
+  while (keep < shown.length && keep < next.length && shown[keep].w === next[keep].w) keep++;
+  for (const s of shown.splice(keep)) { s.sp?.remove(); s.el.remove(); }
+
+  // New words arrive in bursts, so spread them out to read like natural speech.
+  const added = next.slice(keep);
+  const step = added.length > 1 ? Math.min(140, 700 / added.length) : 0;
+  added.forEach((x, i) => {
+    const sp = shown.length ? document.createTextNode(" ") : null;
+    const el = document.createElement("span");
+    el.className = anim === "none" ? "w" : "w in";
+    el.style.animationDelay = i * step + "ms";
+    el.textContent = x.w;
+    if (sp) text.append(sp);
+    text.append(el);
+    shown.push({ w: x.w, el, sp });
+  });
+  shown.forEach((s, i) => s.el.classList.toggle("partial", !next[i].final));
+
+  const empty = next.length === 0;
   box.classList.toggle("hidden", empty);
+
+  // When a new line pushes the text up, glide instead of jumping.
+  if (animate) {
+    text.getAnimations().forEach(a => a.cancel());
+    const shift = topBefore - text.getBoundingClientRect().top;
+    if (shift > 1) {
+      text.animate(
+        [{ transform: `translateY(${shift}px)` }, { transform: "none" }],
+        { duration: 320, easing: "cubic-bezier(.2, .8, .2, 1)" });
+    }
+  }
 
   clearTimeout(fadeTimer);
   if (fadeAfter > 0 && !empty) {
     fadeTimer = setTimeout(() => {
       box.classList.add("hidden");
       // Forget old lines once faded out, unless new speech arrived meanwhile.
-      setTimeout(() => {
-        if (box.classList.contains("hidden")) { finals = []; partial = ""; text.textContent = ""; }
-      }, 400);
+      setTimeout(() => { if (box.classList.contains("hidden")) clearText(); }, 400);
     }, fadeAfter * 1000);
   }
 }
@@ -177,6 +239,7 @@ function connect() {
 }
 
 // demo=1 plays sample lines so you can position the overlay without talking.
+// Words come in bursts every ~1.2 s, the way the speech model delivers them.
 const demoLines = [
   "Hey chat, welcome back to the stream!",
   "These subtitles update live while I talk.",
@@ -185,19 +248,18 @@ const demoLines = [
 ];
 let demoIndex = 0;
 function demo() {
-  const words = demoLines[demoIndex++ % demoLines.length].split(" ");
+  const line = demoLines[demoIndex++ % demoLines.length].split(" ");
   let n = 0;
   const tick = () => {
-    n++;
-    if (n < words.length) {
-      onMessage({ type: "partial", text: words.slice(0, n).join(" ") });
-      setTimeout(tick, 230);
+    n = Math.min(line.length, n + 2 + Math.floor(Math.random() * 3));
+    onMessage({ type: "partial", text: line.slice(0, n).join(" ") });
+    if (n < line.length) {
+      setTimeout(tick, 1200);
     } else {
-      onMessage({ type: "final", text: words.join(" ") });
-      setTimeout(demo, 1400);
+      setTimeout(() => { onMessage({ type: "final", text: line.join(" ") }); setTimeout(demo, 900); }, 900);
     }
   };
-  tick();
+  setTimeout(tick, 300);
 }
 
 if (q.get("demo") === "1") demo(); else connect();
