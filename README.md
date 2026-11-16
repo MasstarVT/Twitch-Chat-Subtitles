@@ -115,7 +115,7 @@ Colours are hex without `#` (`ffcc00`, or `000000a6` with transparency).
 ## Why it's light
 
 - One recognizer thread. The audio callback only converts samples and hands them over.
-- The web server is about 140 lines of the Rust standard library, with no async runtime and no web framework.
+- The web server is about 160 lines of the Rust standard library, with no async runtime and no web framework.
   Updates are pushed to OBS with Server-Sent Events.
 - sherpa-onnx and the ONNX runtime are statically linked. That's why the exe is about 19 MB, but it has no DLLs.
 - Measured on Windows 11 with the default model: about 3% of one CPU core and about 175 MB RAM, mostly the model.
