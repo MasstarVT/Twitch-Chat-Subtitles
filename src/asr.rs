@@ -15,21 +15,18 @@ pub struct Model {
 }
 
 /// Finds a streaming transducer model (encoder/decoder/joiner + tokens.txt).
-/// Looks in `--model` if given, otherwise in `models/` next to the exe and
-/// in the current folder. Each of those may hold the model directly or in a
-/// sub-folder (the way the downloaded archives unpack).
+/// Looks in `--model` if given, otherwise in `models/` in the current folder,
+/// next to the exe, or up to three folders above it (so the exe also finds the
+/// repo's `models/` when run from `target/release`). Each of those may hold the
+/// model directly or in a sub-folder (the way the downloaded archives unpack).
 pub fn find_model(explicit: Option<&Path>) -> Result<Model, String> {
     let roots: Vec<PathBuf> = match explicit {
         Some(p) => vec![p.to_path_buf()],
         None => {
-            let mut r = Vec::new();
-            if let Some(dir) = std::env::current_exe()
-                .ok()
-                .and_then(|e| e.parent().map(Path::to_path_buf))
-            {
-                r.push(dir.join("models"));
+            let mut r = vec![PathBuf::from("models")];
+            if let Ok(exe) = std::env::current_exe() {
+                r.extend(exe.ancestors().skip(1).take(4).map(|d| d.join("models")));
             }
-            r.push(PathBuf::from("models"));
             r
         }
     };
