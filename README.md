@@ -17,26 +17,12 @@ in a small Rust program that uses about **3% of one CPU core**.
 
 ## Quick start (Windows)
 
-1. **Build it.** Install Rust from [rustup.rs](https://rustup.rs) (it needs the Visual Studio C++ build tools), then run:
+1. **Download it.** Get the latest `.zip` from [Releases](https://github.com/MasstarVT/Twitch-Chat-Subtitles/releases/latest) and unzip it anywhere.
+   To compile it yourself instead, see [Building from source](#building-from-source).
 
-   ```bash
-   cargo build --release
-   ```
+2. **Download the speech model.** Double-click `download-model.bat`. It saves about 70 MB to a `models` folder next to the exe.
 
-   This produces `target\release\twitch-chat-subtitles.exe`.
-
-2. **Download the speech model** (about 70 MB, saved to `models\`):
-
-   ```bash
-   powershell -ExecutionPolicy Bypass -File scripts\download-model.ps1
-   ```
-
-3. **Run it:**
-
-   ```bash
-   target\release\twitch-chat-subtitles.exe
-   ```
-
+3. **Run it.** Double-click `twitch-chat-subtitles.exe`.
    It uses your default microphone and prints what it hears.
    ```
    Twitch Chat Subtitles v0.1.0
@@ -50,7 +36,18 @@ in a small Rust program that uses about **3% of one CPU core**.
 
 5. **Add it to OBS.** Choose *Sources → + → Browser*, paste the link as the URL, and set width `1920` and height `1080`.
 
-To run it somewhere else, copy the `.exe` and the `models` folder together. The app looks for `models\` next to the exe.
+To move it, copy the `.exe` and the `models` folder together. The app looks for `models\` next to the exe.
+
+## Building from source
+
+Install Rust from [rustup.rs](https://rustup.rs) (on Windows it needs the Visual Studio C++ build tools), then run:
+
+```bash
+cargo build --release
+```
+
+That produces `target\release\twitch-chat-subtitles.exe`. Run `download-model.bat` from the repo root to get the model.
+The exe finds the repo's `models\` folder when it runs from `target\release`.
 
 ## Choosing a microphone
 
