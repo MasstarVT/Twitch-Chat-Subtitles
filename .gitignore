@@ -1,0 +1,6 @@
+/target/
+/models/
+*.tar.bz2
+*.zip
+graphify-out/
+.claude/

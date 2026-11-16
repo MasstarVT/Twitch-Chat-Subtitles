@@ -1,0 +1,7 @@
+# sherpa-onnx's prebuilt Windows libraries use the static C runtime (/MT),
+# so Rust has to link the same way. Bonus: no VC++ redistributable needed.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

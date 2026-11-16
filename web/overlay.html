@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Subtitles</title>
+<style>
+  :root {
+    --size: 44px;
+    --lh: 1.25;
+    --font: "Segoe UI", system-ui, Arial, sans-serif;
+    --weight: 700;
+    --color: #ffffff;
+    --partial: #ffffffcc;
+    --bg: #000000a6;
+    --lines: 2;
+    --width: 80vw;
+    --radius: 14px;
+    --stroke: 0px;
+    --stroke-color: #000000;
+    --shadow: 0 2px 6px #000000b3;
+    --align: center;
+    --margin: 6vh;
+  }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: var(--margin) 4vw;
+    box-sizing: border-box;
+  }
+  body.top { justify-content: flex-start; }
+  body.left { align-items: flex-start; }
+  body.right { align-items: flex-end; }
+
+  #box {
+    max-width: var(--width);
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: .3em .7em;
+    box-sizing: border-box;
+    transition: opacity .35s ease;
+  }
+  body.fixed #box { width: var(--width); }
+  #box.hidden { opacity: 0; }
+
+  /* Shows only the newest N lines: older text slides off the top. */
+  #clip {
+    max-height: calc(var(--lines) * var(--lh) * var(--size));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  #text {
+    flex: none;
+    font-family: var(--font);
+    font-size: var(--size);
+    font-weight: var(--weight);
+    line-height: var(--lh);
+    color: var(--color);
+    text-align: var(--align);
+    text-shadow: var(--shadow);
+    -webkit-text-stroke: var(--stroke) var(--stroke-color);
+    paint-order: stroke fill;
+    overflow-wrap: anywhere;
+  }
+  #text .partial { color: var(--partial); }
+</style>
+</head>
+<body>
+<div id="box" class="hidden"><div id="clip"><div id="text"></div></div></div>
+<script>
+"use strict";
+// Every look setting comes from the URL, e.g. /overlay?size=56&color=ffff00&lines=3
+// The setup page at / builds this URL for you.
+const q = new URLSearchParams(location.search);
+const css = document.documentElement.style;
+const color = v => /^[0-9a-f]{3,8}$/i.test(v) ? "#" + v : v;
+const px = v => v + "px";
+const params = {
+  size: ["--size", px], weight: ["--weight"], color: ["--color", color],
+  partial: ["--partial", color], bg: ["--bg", color], lines: ["--lines"],
+  width: ["--width", v => v + "vw"], radius: ["--radius", px],
+  stroke: ["--stroke", px], strokecolor: ["--stroke-color", color],
+  align: ["--align"], margin: ["--margin", v => v + "vh"],
+};
+for (const [key, [prop, fn = v => v]] of Object.entries(params)) {
+  if (q.get(key)) css.setProperty(prop, fn(q.get(key)));
+}
+if (q.get("shadow") === "0") css.setProperty("--shadow", "none");
+
+const font = q.get("font");
+if (font) {
+  css.setProperty("--font", `"${font.replace(/["\\]/g, "")}", system-ui, sans-serif`);
+  if (q.get("gfont") === "1") {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=" +
+      encodeURIComponent(font).replace(/%20/g, "+") + ":wght@400;500;600;700;800;900&display=swap";
+    document.head.append(link);
+  }
+}
+document.body.classList.add(q.get("pos") === "top" ? "top" : "bottom");
+if (q.get("align") === "left" || q.get("align") === "right") document.body.classList.add(q.get("align"));
+if (q.get("fixed") === "1") document.body.classList.add("fixed");
+
+const fadeAfter = parseFloat(q.get("fade") ?? "6");
+const caseMode = q.get("case") || "none";
+
+const box = document.getElementById("box");
+const text = document.getElementById("text");
+let finals = [];
+let partial = "";
+let fadeTimer = 0;
+
+function fmt(t) {
+  switch (caseMode) {
+    case "upper": return t.toUpperCase();
+    case "lower": return t.toLowerCase();
+    case "sentence":
+      return t.toLowerCase()
+        .replace(/(^\s*|[.!?]\s+)(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+        .replace(/\bi\b/g, "I");
+    default: return t;
+  }
+}
+
+function render() {
+  const done = finals.map(fmt).join(" ");
+  text.textContent = done;
+  if (partial) {
+    const span = document.createElement("span");
+    span.className = "partial";
+    span.textContent = (done ? " " : "") + fmt(partial);
+    text.append(span);
+  }
+  const empty = !done && !partial;
+  box.classList.toggle("hidden", empty);
+
+  clearTimeout(fadeTimer);
+  if (fadeAfter > 0 && !empty) {
+    fadeTimer = setTimeout(() => {
+      box.classList.add("hidden");
+      // Forget old lines once faded out, unless new speech arrived meanwhile.
+      setTimeout(() => {
+        if (box.classList.contains("hidden")) { finals = []; partial = ""; text.textContent = ""; }
+      }, 400);
+    }, fadeAfter * 1000);
+  }
+}
+
+function onMessage(msg) {
+  if (msg.type === "partial") {
+    partial = msg.text;
+  } else if (msg.type === "final") {
+    finals.push(msg.text);
+    finals = finals.slice(-20);
+    partial = "";
+  }
+  render();
+}
+
+function connect() {
+  const es = new EventSource("/events");
+  es.onmessage = e => { try { onMessage(JSON.parse(e.data)); } catch {} };
+  es.onerror = () => {
+    // The browser retries on its own unless the stream was closed for good.
+    if (es.readyState === EventSource.CLOSED) setTimeout(connect, 2000);
+  };
+}
+
+// demo=1 plays sample lines so you can position the overlay without talking.
+const demoLines = [
+  "Hey chat, welcome back to the stream!",
+  "These subtitles update live while I talk.",
+  "Everything runs on my own PC, nothing goes to the cloud.",
+  "You can change the font, size and colours on the setup page.",
+];
+let demoIndex = 0;
+function demo() {
+  const words = demoLines[demoIndex++ % demoLines.length].split(" ");
+  let n = 0;
+  const tick = () => {
+    n++;
+    if (n < words.length) {
+      onMessage({ type: "partial", text: words.slice(0, n).join(" ") });
+      setTimeout(tick, 230);
+    } else {
+      onMessage({ type: "final", text: words.join(" ") });
+      setTimeout(demo, 1400);
+    }
+  };
+  tick();
+}
+
+if (q.get("demo") === "1") demo(); else connect();
+</script>
+</body>
+</html>

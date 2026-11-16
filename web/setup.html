@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subtitle Setup</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e7e9ee;
+    --muted: #8b93a5; --accent: #9b6bff; --accent-2: #7c4dff;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  header { padding: 20px 24px 8px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 650; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  main {
+    display: grid; grid-template-columns: 340px 1fr; gap: 20px;
+    padding: 16px 24px 32px; align-items: start;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .controls { display: grid; gap: 14px; }
+  fieldset {
+    margin: 0; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); padding: 12px 14px 14px; display: grid; gap: 10px;
+  }
+  legend {
+    padding: 0 6px; font-size: 12px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  label { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 10px; }
+  label > span:first-child { color: var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; min-width: 0; }
+  .row > input[type=range] { flex: 1; min-width: 0; }
+  output { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  input[type=text], select, input[type=number] {
+    width: 100%; background: #0f1218; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 8px; font: inherit;
+  }
+  input[type=color] {
+    width: 38px; height: 28px; padding: 0; border: 1px solid var(--line);
+    border-radius: 6px; background: none; cursor: pointer; flex: none;
+  }
+  input[type=range] { accent-color: var(--accent); }
+  input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .check { grid-template-columns: 112px auto; justify-content: start; }
+
+  .preview { position: sticky; top: 16px; display: grid; gap: 14px; }
+  .stage {
+    position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .stage.game { background: linear-gradient(160deg, #2c5d8f 0%, #5f9e6e 55%, #c8b273 100%); }
+  .stage.dark { background: #15171c; }
+  .stage.light { background: #e9ecf2; }
+  .stage.checker { background: repeating-conic-gradient(#3a3f4a 0% 25%, #2a2e37 0% 50%) 0 / 32px 32px; }
+  .stage iframe {
+    position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+    border: 0; transform-origin: 0 0; background: transparent;
+    /* Must match the overlay's scheme, or Chrome paints the frame opaque. */
+    color-scheme: light;
+  }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .bar .muted { color: var(--muted); margin-right: 4px; }
+  .seg button {
+    background: var(--panel); color: var(--muted); border: 1px solid var(--line);
+    padding: 5px 10px; font: inherit; cursor: pointer;
+  }
+  .seg button:first-child { border-radius: 8px 0 0 8px; }
+  .seg button:last-child { border-radius: 0 8px 8px 0; }
+  .seg button + button { border-left: 0; }
+  .seg button[aria-pressed=true] { color: var(--text); background: #232835; }
+
+  .url {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; display: grid; gap: 10px;
+  }
+  .url .row input { font-family: Consolas, ui-monospace, monospace; font-size: 13px; }
+  button.primary {
+    background: var(--accent-2); color: #fff; border: 0; border-radius: 8px;
+    padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; flex: none;
+  }
+  button.primary:hover { background: var(--accent); }
+  button.ghost {
+    background: none; color: var(--muted); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer;
+  }
+  ol { margin: 0; padding-left: 20px; color: var(--muted); }
+  ol b { color: var(--text); font-weight: 600; }
+  code { background: #0f1218; padding: 1px 5px; border-radius: 4px; color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Subtitle setup</h1>
+  <p>Style your subtitles, then copy the overlay link into OBS. Your settings are saved in this browser.</p>
+</header>
+<main>
+  <form class="controls" id="form" autocomplete="off">
+    <fieldset>
+      <legend>Text</legend>
+      <label><span>Font</span>
+        <input type="text" id="font" list="fonts" placeholder="Segoe UI (default)">
+      </label>
+      <datalist id="fonts">
+        <option>Segoe UI</option><option>Arial</option><option>Verdana</option>
+        <option>Trebuchet MS</option><option>Impact</option><option>Comic Sans MS</option>
+        <option>Georgia</option><option>Consolas</option><option>Inter</option>
+        <option>Poppins</option><option>Montserrat</option><option>Nunito</option>
+        <option>Lexend</option><option>Bebas Neue</option><option>Roboto</option>
+      </datalist>
+      <label class="check"><span>Google Font</span>
+        <input type="checkbox" id="gfont" title="Load the font from Google Fonts (needs internet)">
+      </label>
+      <label><span>Size</span>
+        <span class="row"><input type="range" id="size" min="16" max="120"><output for="size"></output></span>
+      </label>
+      <label><span>Weight</span>
+        <select id="weight">
+          <option value="400">Regular</option><option value="500">Medium</option>
+          <option value="600">Semibold</option><option value="700">Bold</option>
+          <option value="800">Extra bold</option><option value="900">Black</option>
+        </select>
+      </label>
+      <label><span>Colour</span>
+        <span class="row"><input type="color" id="color"></span>
+      </label>
+      <label><span>While speaking</span>
+        <span class="row"><input type="color" id="partialColor">
+          <input type="range" id="partialAlpha" min="20" max="100"><output for="partialAlpha"></output></span>
+      </label>
+      <label><span>Outline</span>
+        <span class="row"><input type="color" id="strokecolor">
+          <input type="range" id="stroke" min="0" max="10"><output for="stroke"></output></span>
+      </label>
+      <label class="check"><span>Drop shadow</span><input type="checkbox" id="shadow"></label>
+      <label><span>Letter case</span>
+        <select id="case">
+          <option value="none">As spoken</option><option value="sentence">Sentence case</option>
+          <option value="upper">UPPERCASE</option><option value="lower">lowercase</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Box</legend>
+      <label><span>Background</span>
+        <span class="row"><input type="color" id="bgColor">
+          <input type="range" id="bgAlpha" min="0" max="100"><output for="bgAlpha"></output></span>
+      </label>
+      <label><span>Corners</span>
+        <span class="row"><input type="range" id="radius" min="0" max="40"><output for="radius"></output></span>
+      </label>
+      <label><span>Max width</span>
+        <span class="row"><input type="range" id="width" min="30" max="100"><output for="width"></output></span>
+      </label>
+      <label class="check"><span>Fixed width</span>
+        <input type="checkbox" id="fixed" title="Keep the box at full width instead of growing with the text">
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Layout</legend>
+      <label><span>Position</span>
+        <select id="pos"><option value="bottom">Bottom</option><option value="top">Top</option></select>
+      </label>
+      <label><span>Align</span>
+        <select id="align"><option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option></select>
+      </label>
+      <label><span>Lines shown</span>
+        <span class="row"><input type="range" id="lines" min="1" max="6"><output for="lines"></output></span>
+      </label>
+      <label><span>Edge gap</span>
+        <span class="row"><input type="range" id="margin" min="0" max="30"><output for="margin"></output></span>
+      </label>
+      <label><span>Hide after</span>
+        <span class="row"><input type="range" id="fade" min="0" max="30"><output for="fade"></output></span>
+      </label>
+    </fieldset>
+    <button type="button" class="ghost" id="reset">Reset to defaults</button>
+  </form>
+
+  <section class="preview">
+    <div class="bar">
+      <span class="muted">Preview background</span>
+      <span class="seg" id="bgPick">
+        <button type="button" data-bg="game" aria-pressed="true">Game</button>
+        <button type="button" data-bg="dark">Dark</button>
+        <button type="button" data-bg="light">Light</button>
+        <button type="button" data-bg="checker">Transparent</button>
+      </span>
+    </div>
+    <div class="stage game" id="stage"><iframe id="frame" title="Overlay preview"></iframe></div>
+
+    <div class="url">
+      <div class="row">
+        <input type="text" id="url" readonly aria-label="Overlay URL">
+        <button type="button" class="primary" id="copy">Copy link</button>
+      </div>
+      <ol>
+        <li>In OBS, add a <b>Browser</b> source and paste this link as the URL.</li>
+        <li>Set width <code>1920</code> and height <code>1080</code> (or your canvas size).</li>
+        <li>Keep this app running while you stream. Speak, and subtitles appear.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+// Defaults mirror overlay.html, so only changed settings end up in the link.
+const DEFAULTS = {
+  font: "", gfont: false, size: 44, weight: "700", color: "#ffffff",
+  partialColor: "#ffffff", partialAlpha: 80, strokecolor: "#000000", stroke: 0,
+  shadow: true, case: "none", bgColor: "#000000", bgAlpha: 65, radius: 14,
+  width: 80, fixed: false, pos: "bottom", align: "center", lines: 2, margin: 6, fade: 6,
+};
+const UNITS = { size: "px", stroke: "px", radius: "px", width: "%", margin: "%", fade: "s", partialAlpha: "%", bgAlpha: "%" };
+const STORE = "subtitle-setup-v1";
+
+const $ = id => document.getElementById(id);
+const keys = Object.keys(DEFAULTS);
+
+function read() {
+  const s = {};
+  for (const k of keys) {
+    const el = $(k);
+    s[k] = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value.trim();
+  }
+  return s;
+}
+
+function write(s) {
+  for (const k of keys) {
+    const el = $(k);
+    if (el.type === "checkbox") el.checked = !!s[k]; else el.value = s[k];
+  }
+  showValues();
+}
+
+function showValues() {
+  for (const out of document.querySelectorAll("output")) {
+    const k = out.htmlFor.value;
+    const v = $(k).value;
+    out.textContent = k === "fade" && v === "0" ? "never" : v + (UNITS[k] || "");
+  }
+}
+
+const hex = c => c.replace("#", "").toLowerCase();
+const withAlpha = (c, pct) => hex(c) + Math.round(pct * 2.55).toString(16).padStart(2, "0");
+
+function overlayUrl(s, extra = {}) {
+  const p = new URLSearchParams();
+  const changed = k => s[k] !== DEFAULTS[k];
+  if (s.font) { p.set("font", s.font); if (s.gfont) p.set("gfont", "1"); }
+  for (const k of ["size", "weight", "stroke", "radius", "width", "lines", "margin", "fade", "pos", "align", "case"]) {
+    if (changed(k)) p.set(k, s[k]);
+  }
+  if (changed("color")) p.set("color", hex(s.color));
+  if (changed("partialColor") || changed("partialAlpha")) p.set("partial", withAlpha(s.partialColor, s.partialAlpha));
+  if (changed("bgColor") || changed("bgAlpha")) p.set("bg", withAlpha(s.bgColor, s.bgAlpha));
+  if (changed("strokecolor")) p.set("strokecolor", hex(s.strokecolor));
+  if (!s.shadow) p.set("shadow", "0");
+  if (s.fixed) p.set("fixed", "1");
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const qs = p.toString();
+  return location.origin + "/overlay" + (qs ? "?" + qs : "");
+}
+
+let previewTimer = 0;
+function update() {
+  showValues();
+  const s = read();
+  $("url").value = overlayUrl(s);
+  try { localStorage.setItem(STORE, JSON.stringify(s)); } catch {}
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => { $("frame").src = overlayUrl(s, { demo: "1" }); }, 200);
+}
+
+function fitPreview() {
+  $("frame").style.transform = `scale(${$("stage").clientWidth / 1920})`;
+}
+
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch {}
+write({ ...DEFAULTS, ...saved });
+update();
+
+$("form").addEventListener("input", update);
+$("form").addEventListener("change", update);
+$("reset").addEventListener("click", () => { write(DEFAULTS); update(); });
+
+$("copy").addEventListener("click", async () => {
+  const btn = $("copy");
+  try { await navigator.clipboard.writeText($("url").value); }
+  catch { $("url").select(); document.execCommand("copy"); }
+  btn.textContent = "Copied";
+  setTimeout(() => { btn.textContent = "Copy link"; }, 1500);
+});
+
+$("bgPick").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  for (const x of $("bgPick").children) x.setAttribute("aria-pressed", x === b);
+  $("stage").className = "stage " + b.dataset.bg;
+});
+
+new ResizeObserver(fitPreview).observe($("stage"));
+fitPreview();
+</script>
+</body>
+</html>

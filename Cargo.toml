@@ -1,0 +1,19 @@
+[package]
+name = "twitch-chat-subtitles"
+version = "0.1.0"
+edition = "2024"
+description = "Real-time mic subtitles for OBS, fully offline"
+license = "MIT"
+authors = ["MasstarVT"]
+repository = "https://github.com/MasstarVT/Twitch-Chat-Subtitles"
+
+[dependencies]
+cpal = "0.18"
+sherpa-onnx = "2.0.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
